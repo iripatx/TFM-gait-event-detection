@@ -5,32 +5,54 @@ from pathlib import Path
 import numpy as np
 import time
 
-"""
-    read_data
+# Defining global paths
+root_path = Path.cwd().parent
+data_path = root_path / 'data' / 'MAREA_dataset'
+timings_path = data_path / 'Activity Timings'
+subjects_path = data_path / 'Subject Data_txt format'
+    
+
+def read_all_data():
+    """
+    read_all_data
     Returns all of the database in a dictionary.
     The dictionary splits in other two dictionaries for indoors and outdoors data
     Inside of them, each entry represents a subject, 
     containing the corresponding activities.
-""" 
-def read_data():
-    
-    # Defining paths
-    root_path = Path.cwd().parent
-    data_path = root_path / 'data' / 'MAREA_dataset'
-    timings_path = data_path / 'Activity Timings'
-    subjects_path = data_path / 'Subject Data_txt format'
+    """ 
     
     # Creating dictionary
     data = {"indoors":{} , "outdoors":{}}
     
     # INDOORS DATA
+    indoors_dic = read_indoors_data(test = True)
+        
+    # OUTDOORS DATA
+    outdoors_dic= read_outdoors_data()
+
+
+
+def read_indoors_data(test = False):
+    """
+    Returns data taken from indoors experiments
+    Arguments:
+        test(boolean, default = False): If true, only the first subject will be read
+    """
+    
     # Reading indoor timings file to find the number of subjects
     with (timings_path / 'Indoor Experiment Timings.txt').open() as f_timings:
         num_subjects = sum(1 for line in f_timings)
+        
+    # If test is true, only one subject will be processed
+    if test:
+        num_subjects = 1
     
     # Opening indoor timings file
     f_timings = (timings_path / 'Indoor Experiment Timings.txt').open()
         
+    # Creating dictionary for all indoor subjects
+    indoor_dic = {}
+    
     # For each subject
     for i in np.arange(num_subjects):
         
@@ -82,12 +104,12 @@ def read_data():
         dic['flat_space']['Waist'] = Waist[0:timings[7]-1, :]
         dic['flat_space']['Wrist'] = Wrist[0:timings[7]-1, :]
         
-        # Storing subject in the dictionary
-        data['indoors'][str(i + 1)] = dic
-        
         # Take current time to measure computation time
         end = time.time()
-        print('Sujeto ' + str(i) + ' procesado. Tiempo empleado: ' + str(end - start))
+        print('Sujeto ' + str(i + 1) + ' procesado. Tiempo empleado: ' + str(end - start))
         
-    end
+        # Storing subject
+        indoor_dic[str(i + 1)] = dic
+    
+    return indoor_dic
         

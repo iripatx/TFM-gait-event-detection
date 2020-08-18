@@ -24,12 +24,19 @@ def read_data():
     data = {"indoors":{} , "outdoors":{}}
     
     # INDOORS DATA
+    # Reading indoor timings file to find the number of subjects
+    with (timings_path / 'Indoor Experiment Timings.txt').open() as f_timings:
+        num_subjects = sum(1 for line in f_timings)
     
     # Opening indoor timings file
     f_timings = (timings_path / 'Indoor Experiment Timings.txt').open()
         
     # For each subject
-    for i in np.arange(2):
+    for i in np.arange(num_subjects):
+        
+        # Subject 4 lacks wrist data and will be skipped
+        if (i == 3):
+            continue
         
         # Take current time to measure computation time
         start = time.time()
@@ -48,7 +55,7 @@ def read_data():
                'treadmill_slope':{'LF':[], 'RF':[], 'Waist':[], 'Wrist':[]}, \
                'flat_space':{'LF':[], 'RF':[], 'Waist':[], 'Wrist':[]}}
         
-        # Reading and storing subject data
+        # Reading subject's data
         LF_filename = 'Sub' + str(i + 1) + '_LF.txt'
         RF_filename = 'Sub' + str(i + 1) + '_RF.txt'
         Waist_filename = 'Sub' + str(i + 1) + '_Waist.txt'
@@ -75,7 +82,7 @@ def read_data():
         dic['flat_space']['Waist'] = Waist[0:timings[7]-1, :]
         dic['flat_space']['Wrist'] = Wrist[0:timings[7]-1, :]
         
-        # Storing user in the dictionary
+        # Storing subject in the dictionary
         data['indoors'][str(i + 1)] = dic
         
         # Take current time to measure computation time

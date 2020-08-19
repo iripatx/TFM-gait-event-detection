@@ -12,23 +12,42 @@ data_path = root_path / 'data' / 'MAREA_dataset'
 timings_path = data_path / 'Activity Timings'
 subjects_path = data_path / 'Subject Data_txt format'
 
-def get_database():
+def get_database(verbose = True):
+    """
+    get_database
+    Imports database as a pandas DataFrame. If the data has not been converted yet,
+    read_data will be called.
+    
+    Arguments:
+        verbose (boolean, default = True): If true, the function will display information
+            about the process
+            
+    Returns: 
+        db (pandas.DataFrame): Database
     """
     
-    """
+    # Check if database.pkl exists
+    if not (data_path / 'database').exists():
+        # Database has not been yet read
+        if verbose: print('Database not found. Reading data...')
+        read_all_data(verbose = verbose)
+        
+    # Import database
+    db = pd.read_pickle(data_path / 'database')
+    if verbose: print('Database sucessfully loaded')
+    
+    return db
     
 
 def read_all_data(verbose = True):
     """
     read_all_data
-    Reads the database and stores it as a pandas dataframe.
+    Reads the database, converts and stores it as a pandas dataframe.
     The dataframe is stored as a pickle (.pkl) file
-    This function should only be called once. Once the dataframe is stored, 
-    it can be loaded quickly using get_database
     
     Arguments:
         verbose (boolean, default = True): If true, the function will display information
-            about the reading process
+            about the process
     """ 
     
     # Take current time
@@ -69,7 +88,7 @@ def read_indoors_data(test = False, verbose = True):
     Arguments:
         test (boolean, default = False): If true, only the first subject will be read
         verbose (boolean, default = True): If true, the function will display information
-            about the reading process
+            about the process
     """
     
     # Reading indoor timings file to find the number of subjects
@@ -155,7 +174,7 @@ def read_outdoors_data(test = False, verbose = True):
     Arguments:
         test(boolean, default = False): If true, only the first subject will be read
         verbose (boolean, default = True): If true, the function will display information
-            about the reading process
+            about the process
     """
     
     # Reading outdoor timings file to find the number of subjects

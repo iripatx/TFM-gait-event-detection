@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 import io_utils
 
-io_utils.read_all_data()
+db = io_utils.get_database()

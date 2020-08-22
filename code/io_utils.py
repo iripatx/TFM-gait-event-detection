@@ -2,6 +2,7 @@
 
 # required imports
 from pathlib import Path
+from scipy.io import loadmat
 import numpy as np
 import pandas as pd
 import time
@@ -36,6 +37,10 @@ def get_database(verbose = True):
     db = pd.read_pickle(data_path / 'database')
     if verbose: print('Database sucessfully loaded')
     
+    # Sorting dataframe
+    db.index = db.index.astype(int)
+    db = db.sort_index()
+    
     return db
     
 
@@ -68,6 +73,13 @@ def read_all_data(verbose = True):
     
     # Converting dictionary to dataframe
     db = pd.DataFrame.from_dict(data)
+    
+    # Sorting dataframe
+    db.index = db.index.astype(int)
+    db = db.sort_index()
+    
+    # LABELS
+    db = read_labels(db, verbose = verbose)
     
     # Storing database as a pickle file
     db.to_pickle(data_path / 'database')
@@ -221,4 +233,68 @@ def read_outdoors_data(test = False, verbose = True):
         outdoor_dic[str(i + 1)] = dic
     
     return outdoor_dic
+
+def read_labels(db, verbose = True):
+    """
+        read_labels
+        Imports event labels. Notation is:
+            1: Left Foot Heel Strike
+            2: Left Foot Toe Off
+            3: Right Foot Heel Strike
+            4: Right Foot Toe Off
+    """
+    
+    # import MATLAB file
+    mat = loadmat(data_path / 'GroundTruth.mat')
+    gt = mat['GroundTruth']
+    
+    # Indoor labels
+    for i in np.arange(gt.size):
+        
+        # Skipping 4th subject
+        if i == 3: continue
+        
+        # Creating label matrices
+        treadmill_flat_labels = np.zeros([db['indoors'][i+1]['treadmill_flat']['LF'].size, 4])
+        treadmill_slope_labels = np.zeros([db['indoors'][i+1]['treadmill_slope']['LF'].size, 4])
+        flat_space_labels = np.zeros([db['indoors'][i+1]['flat_space']['LF'].size, 4])
+        
+        # Assigning labels
+        treadmill_flat_labels[gt[0, i]['treadWalknRun']['LF_HS'].item(), 0] = 1
+        treadmill_flat_labels[gt[0, i]['treadWalknRun']['LF_TO'].item(), 1] = 1
+        treadmill_flat_labels[gt[0, i]['treadWalknRun']['RF_HS'].item(), 2] = 1
+        treadmill_flat_labels[gt[0, i]['treadWalknRun']['RF_TO'].item(), 3] = 1
+        
+        treadmill_slope_labels[gt[0, i]['treadIncline']['LF_HS'].item(), 0] = 1
+        treadmill_slope_labels[gt[0, i]['treadIncline']['LF_TO'].item(), 1] = 1
+        treadmill_slope_labels[gt[0, i]['treadIncline']['RF_HS'].item(), 2] = 1
+        treadmill_slope_labels[gt[0, i]['treadIncline']['RF_TO'].item(), 3] = 1
+        
+        flat_space_labels[gt[0, i]['indoorWalknRun']['LF_HS'].item(), 0] = 1
+        flat_space_labels[gt[0, i]['indoorWalknRun']['LF_TO'].item(), 1] = 1
+        flat_space_labels[gt[0, i]['indoorWalknRun']['RF_HS'].item(), 2] = 1
+        flat_space_labels[gt[0, i]['indoorWalknRun']['RF_TO'].item(), 3] = 1
+        
+        # Storing label in the dataframe
+        db['indoors'][i+1]['treadmill_flat']['labels'] = treadmill_flat_labels
+        db['indoors'][i+1]['treadmill_slope']['labels'] = treadmill_slope_labels
+        db['indoors'][i+1]['flat_space']['labels'] = flat_space_labels
+        
+    # Outdoor labels
+    for i in np.arange(gt.size - 2):
+        
+        # Creating label matrix
+        street_labels = np.zeros([db['outdoors'][i+1]['street']['LF'].size, 4])
+        
+        # Assigning labels
+        street_labels[gt[0, i]['outdoorWalknRun']['LF_HS'].item(), 0] = 1
+        street_labels[gt[0, i]['outdoorWalknRun']['LF_TO'].item(), 1] = 1
+        street_labels[gt[0, i]['outdoorWalknRun']['RF_HS'].item(), 2] = 1
+        street_labels[gt[0, i]['outdoorWalknRun']['RF_TO'].item(), 3] = 1
+        
+        db['outdoors'][i+1]['street']['labels'] = street_labels
+        
+    
+    return db
+    
         

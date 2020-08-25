@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+    This file implements the functions required to implement the database
+    into a pandas dataframe.
+"""
 
 # required imports
 from pathlib import Path
@@ -120,6 +124,9 @@ def read_indoors_data(test = False, verbose = True):
     # For each subject
     for i in np.arange(num_subjects):
         
+        # Read timings line
+        string = f_timings.readline()
+        
         # Subject 4 lacks wrist data and will be skipped
         if (i == 3):
             continue
@@ -127,8 +134,6 @@ def read_indoors_data(test = False, verbose = True):
         # Take current time
         start = time.time()
         
-        # Read timings line
-        string = f_timings.readline()
         # Extract timings
         timings = string.split(',')
         # Remove trailing newline characters
@@ -251,13 +256,15 @@ def read_labels(db, verbose = True):
     # Indoor labels
     for i in np.arange(gt.size):
         
+        print(i)
+        
         # Skipping 4th subject
         if i == 3: continue
         
         # Creating label matrices
-        treadmill_flat_labels = np.zeros([db['indoors'][i+1]['treadmill_flat']['LF'].size, 4])
-        treadmill_slope_labels = np.zeros([db['indoors'][i+1]['treadmill_slope']['LF'].size, 4])
-        flat_space_labels = np.zeros([db['indoors'][i+1]['flat_space']['LF'].size, 4])
+        treadmill_flat_labels = np.zeros([db['indoors'][i+1]['treadmill_flat']['LF'].shape[0], 4])
+        treadmill_slope_labels = np.zeros([db['indoors'][i+1]['treadmill_slope']['LF'].shape[0], 4])
+        flat_space_labels = np.zeros([db['indoors'][i+1]['flat_space']['LF'].shape[0], 4])
         
         # Assigning labels
         treadmill_flat_labels[gt[0, i]['treadWalknRun']['LF_HS'].item(), 0] = 1
@@ -284,7 +291,7 @@ def read_labels(db, verbose = True):
     for i in np.arange(gt.size - 2):
         
         # Creating label matrix
-        street_labels = np.zeros([db['outdoors'][i+1]['street']['LF'].size, 4])
+        street_labels = np.zeros([db['outdoors'][i+1]['street']['LF'].shape[0], 4])
         
         # Assigning labels
         street_labels[gt[0, i]['outdoorWalknRun']['LF_HS'].item(), 0] = 1

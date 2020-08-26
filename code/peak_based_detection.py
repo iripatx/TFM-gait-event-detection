@@ -13,7 +13,10 @@ from math import isnan
 import numpy as np
 import pandas as pd
 import io_utils
+<<<<<<< HEAD
 import display_utils
+=======
+>>>>>>> peak-based-method
 
 
 
@@ -21,6 +24,7 @@ import display_utils
 root_path = Path.cwd().parent
 data_path = root_path / 'data' / 'MAREA_dataset'
 
+<<<<<<< HEAD
 # indoor tests
 indoor_tests = ['treadmill_flat', 'treadmill_slope', 'flat_space']
 
@@ -37,10 +41,15 @@ indoor_tests = ['treadmill_flat', 'treadmill_slope', 'flat_space']
         
         
 
+=======
+indoor_tests = ['treadmill_flat', 'treadmill_slope', 'flat_space']
+
+>>>>>>> peak-based-method
 def extract_data():
     """
         extract_data
         Extracts only the necessary data and arranges it for the detection.
+<<<<<<< HEAD
         Each instace will be stored as a n x 6 numpy array where:
             - n is the signal's length
             - Column 1 is the left foot's acceleration signal in the X axis
@@ -49,6 +58,8 @@ def extract_data():
                 heel strike and toe off respectively
             - Columns 5 and 6 are the ground thruth labels for the left foot's 
                 heel strike and toe off respectively
+=======
+>>>>>>> peak-based-method
     """
     
     # Obtain database
@@ -85,7 +96,11 @@ def extract_data():
         right_foot = db['outdoors'][i]['street']['RF'][:, 0].reshape(-1, 1)
         labels = db['outdoors'][i]['street']['labels']
         data.append(np.concatenate((left_foot, right_foot, labels), axis = 1))
+<<<<<<< HEAD
         
     display_utils.view_sample(data[0][:, 0:2], data[0][:, 2:6])
     return data
+=======
+                
+>>>>>>> peak-based-method
     

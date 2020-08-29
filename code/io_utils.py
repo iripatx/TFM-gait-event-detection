@@ -10,6 +10,7 @@ from scipy.io import loadmat
 import numpy as np
 import pandas as pd
 import time
+import preprocess_utils
 
 # Defining global paths
 root_path = Path.cwd().parent
@@ -17,7 +18,7 @@ data_path = root_path / 'data' / 'MAREA_dataset'
 timings_path = data_path / 'Activity Timings'
 subjects_path = data_path / 'Subject Data_txt format'
 
-def get_database(verbose = True):
+def get_database(verbose = True, preprocessed = False):
     """
     get_database
     Imports database as a pandas DataFrame. If the data has not been converted yet,
@@ -32,6 +33,16 @@ def get_database(verbose = True):
     """
     
     # Check if database.pkl exists
+    if preprocessed:
+        # Check if preprocessed database (prep_database.pkl) exists
+        if (data_path / 'prep_database').exists():
+            # Import database
+            db = pd.read_pickle(data_path / 'prep_database')
+            if verbose: print('Preprocessed database sucessfully loaded')
+        else:
+            if verbose: print('Preprocessed database not found. Loading databse...')
+    
+    # Check if database.pkl exists
     if not (data_path / 'database').exists():
         # Database has not been yet read
         if verbose: print('Database not found. Reading data...')
@@ -44,6 +55,14 @@ def get_database(verbose = True):
     # Sorting dataframe
     db.index = db.index.astype(int)
     db = db.sort_index()
+    
+    # If the preprocessed data is required
+    if preprocessed:
+        if verbose: print('Preprocessing database...')
+        db = preprocess_utils.preprocess_data(db)
+        if verbose: print('Database sucessfully preprocessed')
+        # Storing database as a pickle file
+        db.to_pickle(data_path / 'prep_database')
     
     return db
     

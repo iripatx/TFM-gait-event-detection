@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 This file implements the peak-based event detection using linear accelerometers 
-described by Jan M. Jasiewicz and his colleagues  in "Gait event detection 
-using linear accelerometers or angular velocity transducers in able-bodied and 
-spinal-cord injured individuals" at
-https://www.sciencedirect.com/science/article/pii/S0966636206000129
+by valley detection.
 """
 
-# required imports
+# Required imports
 from pathlib import Path
 from math import isnan
 from scipy.signal import find_peaks
@@ -21,11 +18,11 @@ from preprocess_utils import amplify_windows
 root_path = Path.cwd().parent
 data_path = root_path / 'data' / 'MAREA_dataset'
 
-# indoor tests
+# Defining indoor tests
 indoor_tests = ['treadmill_flat', 'treadmill_slope', 'flat_space']
 
 
-def detect_events():
+def detect_events(window_size = 500):
     """
         detect_events
         Detects peaks is movement signals and and classifies them as events
@@ -42,12 +39,26 @@ def detect_events():
         # Finding valleys and setting them as predictions
         for i, foot in enumerate(['left', 'right']):
             
-            # Valleys are peaks in the inverse signal
-            valleys = find_peaks(instance[:, i]*(-1), distance = 30, width = 5, height = 0)
+            # Storing signal
+            signal = instance[:, i]
             
-            # Marking predictions
-            predictions[valleys[0], 2 * i] = 1
-            predictions[valleys[0], 2 * i + 1] = 1
+            # Valleys are peaks in the inverse signals
+            valleys = find_peaks(signal*(-1), distance = 30, width = 5, height = 0)[0]
+            
+            # HS are the deep valleys, TOs are the shallow ones, using the mean of all valleys to pick them out
+            # Setting up a search by windows
+            for start in np.arange(0, instance.shape[0], window_size):
+                
+                end = min(start + window_size, instance.shape[0])
+
+                current_valleys = valleys[(start <= valleys) & (valleys <= end)]
+                
+                hs = current_valleys[signal[current_valleys] < np.mean(signal[current_valleys])]
+                to = current_valleys[signal[current_valleys] >= np.mean(signal[current_valleys])]
+                
+                # Marking predictions
+                predictions[hs, 2 * i] = 1
+                predictions[to, 2 * i + 1] = 1
             
         # Amplifying event windows
         predictions = amplify_windows(predictions)

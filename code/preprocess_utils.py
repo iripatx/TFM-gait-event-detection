@@ -17,7 +17,7 @@ def preprocess_data(db):
     return db
 
 
-def amplify_all_event_windows(db,):
+def amplify_all_event_windows(db):
     
     # INDOORS DATA
     for i in np.arange(1, db.shape[0] + 1):

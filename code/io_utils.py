@@ -10,6 +10,7 @@ from scipy.io import loadmat
 import numpy as np
 import pandas as pd
 import time
+import preprocess_utils
 
 # Defining global paths
 root_path = Path.cwd().parent
@@ -17,7 +18,10 @@ data_path = root_path / 'data' / 'MAREA_dataset'
 timings_path = data_path / 'Activity Timings'
 subjects_path = data_path / 'Subject Data_txt format'
 
-def get_database(verbose = True):
+# Defining indoor tests
+indoor_tests = ['treadmill_flat', 'treadmill_slope', 'flat_space']
+
+def get_database(verbose = True, preprocessed = False):
     """
     get_database
     Imports database as a pandas DataFrame. If the data has not been converted yet,
@@ -26,10 +30,23 @@ def get_database(verbose = True):
     Arguments:
         verbose (boolean, default = True): If true, the function will display information
             about the process
+        preprocessed (boolean, default = True): If True, the function returns the 
+            database already preprocessed.
             
     Returns: 
         db (pandas.DataFrame): Database
     """
+    
+    # Check if database.pkl exists
+    if preprocessed:
+        # Check if preprocessed database (prep_database.pkl) exists
+        if (data_path / 'prep_database').exists():
+            # Import database
+            db = pd.read_pickle(data_path / 'prep_database')
+            if verbose: print('Preprocessed database sucessfully loaded')
+            return db
+        else:
+            if verbose: print('Preprocessed database not found. Loading databse...')
     
     # Check if database.pkl exists
     if not (data_path / 'database').exists():
@@ -44,6 +61,14 @@ def get_database(verbose = True):
     # Sorting dataframe
     db.index = db.index.astype(int)
     db = db.sort_index()
+    
+    # If the preprocessed data is required
+    if preprocessed:
+        if verbose: print('Preprocessing database...')
+        db = preprocess_utils.preprocess_data(db)
+        if verbose: print('Database sucessfully preprocessed')
+        # Storing database as a pickle file
+        db.to_pickle(data_path / 'prep_database')
     
     return db
     
@@ -157,21 +182,23 @@ def read_indoors_data(test = False, verbose = True):
         Wrist = np.loadtxt(subjects_path / Wrist_filename, delimiter = ',', skiprows = 1)
         
         # Storing subject's data
-        # Treadmill (flat) walk and run
-        dic['treadmill_flat']['LF'] = LF[0:timings[2]-1, :]
-        dic['treadmill_flat']['RF'] = RF[0:timings[2]-1, :]
-        dic['treadmill_flat']['Waist'] = Waist[0:timings[2]-1, :]
-        dic['treadmill_flat']['Wrist'] = Wrist[0:timings[2]-1, :]
-        # Treadmill (slope) walk
-        dic['treadmill_slope']['LF'] = LF[0:timings[4]-1, :]
-        dic['treadmill_slope']['RF'] = RF[0:timings[4]-1, :]
-        dic['treadmill_slope']['Waist'] = Waist[0:timings[4]-1, :]
-        dic['treadmill_slope']['Wrist'] = Wrist[0:timings[4]-1, :]
-        # Indoor flat space walk and run
-        dic['flat_space']['LF'] = LF[0:timings[7]-1, :]
-        dic['flat_space']['RF'] = RF[0:timings[7]-1, :]
-        dic['flat_space']['Waist'] = Waist[0:timings[7]-1, :]
-        dic['flat_space']['Wrist'] = Wrist[0:timings[7]-1, :]
+        
+        for test in indoor_tests:
+            # Treadmill (flat) walk and run
+            dic['treadmill_flat']['LF'] = LF[0:timings[2]-1, :]
+            dic['treadmill_flat']['RF'] = RF[0:timings[2]-1, :]
+            dic['treadmill_flat']['Waist'] = Waist[0:timings[2]-1, :]
+            dic['treadmill_flat']['Wrist'] = Wrist[0:timings[2]-1, :]
+            # Treadmill (slope) walk
+            dic['treadmill_slope']['LF'] = LF[0:timings[4]-1, :]
+            dic['treadmill_slope']['RF'] = RF[0:timings[4]-1, :]
+            dic['treadmill_slope']['Waist'] = Waist[0:timings[4]-1, :]
+            dic['treadmill_slope']['Wrist'] = Wrist[0:timings[4]-1, :]
+            # Indoor flat space walk and run
+            dic['flat_space']['LF'] = LF[0:timings[7]-1, :]
+            dic['flat_space']['RF'] = RF[0:timings[7]-1, :]
+            dic['flat_space']['Waist'] = Waist[0:timings[7]-1, :]
+            dic['flat_space']['Wrist'] = Wrist[0:timings[7]-1, :]
         
         # Take current time and measure computation time
         end = time.time()

@@ -7,4 +7,4 @@ import io_utils
 #db = io_utils.get_database()
 #db = io_utils.read_labels(db)
 
-io_utils.get_database(preprocessed = True)
+pbd.detect_events()

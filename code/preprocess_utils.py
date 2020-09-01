@@ -17,14 +17,7 @@ def preprocess_data(db):
     return db
 
 
-def amplify_all_event_windows(db, window_size = 9):
-    
-    # If the window size isn't even, end script
-    if (window_size % 2 == 0):
-        exit('ERROR: Window size must be an even number')
-    
-    # Computing window margin's size
-    margin = int(window_size / 2)
+def amplify_all_event_windows(db,):
     
     # INDOORS DATA
     for i in np.arange(1, db.shape[0] + 1):
@@ -34,7 +27,7 @@ def amplify_all_event_windows(db, window_size = 9):
         
         for test in indoor_tests:
             
-            db['indoors'][i][test]['labels'] = amplify_windows(db['indoors'][i][test]['labels'], margin)
+            db['indoors'][i][test]['labels'] = amplify_windows(db['indoors'][i][test]['labels'])
             
     # OUTDOORS DATA
     for i in np.arange(1, db.shape[0] + 1):
@@ -42,12 +35,19 @@ def amplify_all_event_windows(db, window_size = 9):
         # Skipping NaN values
         if pd.isna(db['outdoors'][i]): continue
         
-        db['outdoors'][i]['street']['labels'] = amplify_windows(db['outdoors'][i]['street']['labels'], margin)
+        db['outdoors'][i]['street']['labels'] = amplify_windows(db['outdoors'][i]['street']['labels'])
         
     return db
 
 
-def amplify_windows(labels, margin):
+def amplify_windows(labels, window_size = 9):
+    
+    # If the window size isn't even, end script
+    if (window_size % 2 == 0):
+        exit('ERROR: Window size must be an even number')
+    
+    # Computing window margin's size
+    margin = int(window_size / 2)
     
     for i in np.arange(labels.shape[1]):
         

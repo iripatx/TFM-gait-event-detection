@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import io_utils
 import display_utils
+from preprocess_utils import amplify_windows
 
 # Defining global paths
 root_path = Path.cwd().parent
@@ -24,14 +25,10 @@ data_path = root_path / 'data' / 'MAREA_dataset'
 indoor_tests = ['treadmill_flat', 'treadmill_slope', 'flat_space']
 
 
-def detect_events(method = 'find_peaks'):
+def detect_events():
     """
         detect_events
         Detects peaks is movement signals and and classifies them as events
-        
-        Arguments:
-            data(list): a list containing a numpy array with the data.
-            method(string): method to be used to detect peaks
     """
     
     # Retrieving data
@@ -39,19 +36,26 @@ def detect_events(method = 'find_peaks'):
     
     for instance in data:
         
-        # Declaring label matrix
-        labels = np.zeros([instance.shape[0], 4])
-        # Finding valleys and setting them as labels
+        # Declaring predictions matrix
+        predictions = np.zeros([instance.shape[0], 4])
+        
+        # Finding valleys and setting them as predictions
         for i, foot in enumerate(['left', 'right']):
             
             # Valleys are peaks in the inverse signal
             valleys = find_peaks(instance[:, i]*(-1), distance = 30, width = 5, height = 0)
             
-            #temp
-            labels[valleys[0], 2 * i] = 1
-            labels[valleys[0], 2 * i + 1] = 1
+            # Marking predictions
+            predictions[valleys[0], 2 * i] = 1
+            predictions[valleys[0], 2 * i + 1] = 1
+            
+        # Amplifying event windows
+        predictions = amplify_windows(predictions)
         
-        end
+        # Storing predictions
+        data[data.index(instance)] = np.concatenate((instance, predictions), axis = 1)
+        
+    end
             
 
 def extract_data():
@@ -69,7 +73,7 @@ def extract_data():
     """
     
     # Obtain database
-    db = io_utils.get_database()
+    db = io_utils.get_database(preprocessed = True)
     
     # Declarating list to store the data
     data = []

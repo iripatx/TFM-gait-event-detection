@@ -43,7 +43,7 @@ def detect_events(window_size = 500):
             signal = instance[:, i]
             
             # Valleys are peaks in the inverse signals
-            valleys = find_peaks(signal*(-1), distance = 30, width = 5, height = 0)[0]
+            valleys = find_peaks(signal*(-1), distance = 30, width = 4)[0]
             
             # HS are the deep valleys, TOs are the shallow ones, using the mean of all valleys to pick them out
             # Setting up a search by windows
@@ -66,8 +66,9 @@ def detect_events(window_size = 500):
         # Storing predictions
         data[data.index(instance)] = np.concatenate((instance, predictions), axis = 1)
         
-    end
+    return data
             
+
 
 def extract_data():
     """

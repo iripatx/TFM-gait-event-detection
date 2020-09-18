@@ -37,7 +37,7 @@ def get_database(verbose = True, preprocessed = False):
         db (pandas.DataFrame): Database
     """
     
-    # Check if database.pkl exists
+    # If the preprocessed data is required
     if preprocessed:
         # Check if preprocessed database (prep_database.pkl) exists
         if (data_path / 'prep_database').exists():
@@ -48,7 +48,7 @@ def get_database(verbose = True, preprocessed = False):
         else:
             if verbose: print('Preprocessed database not found. Loading databse...')
     
-    # Check if database.pkl exists
+    # Check if database already exists
     if not (data_path / 'database').exists():
         # Database has not been yet read
         if verbose: print('Database not found. Reading data...')

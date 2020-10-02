@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    This script implements an event detection method based on a LSTM neural
+    This script implements an event detection method based on a TCN neural
     network architecture.
 """
 
@@ -9,13 +9,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-import pickle
 import io_utils
 import matplotlib.pyplot as plt
-from LSTM_model import LSTM
+from TCN_model import TCN
 import random
-
-
 
 # Defining global paths
 root_path = Path.cwd().parent
@@ -35,27 +32,24 @@ def detect_events(trained_model = None):
     # Checking if ther's a previously trained model
     if trained_model is not None:
         
-        print('Trained model loaded')
-        
         # Defining paths
-        model_path = root_path / 'models' / 'LSTM' / trained_model
+        model_path = root_path / 'models' / 'TCN' / trained_model
         
         # Load previously trained model
         with open(model_path, 'rb') as f:
             checkpoint = torch.load(f)
      
-        net = LSTM(batch_size=checkpoint['batch_size'],seq_length=checkpoint['sequence_length'],
+        net = TCN(batch_size=checkpoint['batch_size'],seq_length=checkpoint['sequence_length'],
                       epochs=epochs, input_dim = input_dim, drop_prob=0.3, num_labels=4)
         
         net.load_state_dict(checkpoint['state_dict'])
         
-        # Load dataset
+        print('Trained model loaded')
         
     else:
         
-        net = LSTM(batch_size=20, seq_length = 500, epochs = 30, 
-                   input_dim = input_dim, num_labels=4)
-        
+        net = TCN(batch_size = 20, seq_length = 250, epochs = 30, 
+                   input_dim = input_dim, num_labels = 4)
         
     data, val_data = extract_data()  
     net.trainloop(data, val_data)

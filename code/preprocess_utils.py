@@ -5,19 +5,15 @@
 
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import normalize
 from sys import exit
 
 # indoor tests
 indoor_tests = ['treadmill_flat', 'treadmill_slope', 'flat_space']
+# Accelerometer positions
+acc_locations = ['LF', 'RF', 'Waist', 'Wrist']
 
 def preprocess_data(db):
-    
-    db = amplify_all_event_windows(db)
-    
-    return db
-
-
-def amplify_all_event_windows(db):
     
     # INDOORS DATA
     for i in np.arange(1, db.shape[0] + 1):
@@ -27,6 +23,11 @@ def amplify_all_event_windows(db):
         
         for test in indoor_tests:
             
+            # Normalize signals
+            # for location in acc_locations:
+            #     db['indoors'][i][test][location] = normalize(amplify_windows(db['indoors'][i][test][location]), axis = 0)
+            
+            # Amplify event windows
             db['indoors'][i][test]['labels'] = amplify_windows(db['indoors'][i][test]['labels'])
             
     # OUTDOORS DATA
@@ -34,12 +35,17 @@ def amplify_all_event_windows(db):
         
         # Skipping NaN values
         if pd.isna(db['outdoors'][i]): continue
+    
+        # Normalize signals
+        # for location in acc_locations:
+        #     db['outdoors'][i]['street'][location] = normalize(amplify_windows(db['outdoors'][i]['street'][location]), axis = 0)
         
+        # Amplify event windows
         db['outdoors'][i]['street']['labels'] = amplify_windows(db['outdoors'][i]['street']['labels'])
         
     return db
-
-
+    
+    
 def amplify_windows(labels, window_size = 9):
     
     # If the window size isn't even, end script

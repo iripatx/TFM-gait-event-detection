@@ -9,7 +9,8 @@ from sklearn.preprocessing import normalize
 from sys import exit
 
 # indoor tests
-indoor_tests = ['treadmill_flat', 'treadmill_slope', 'flat_space']
+indoor_tests = ['treadmill_flat_walk', 'treadmill_flat_run','treadmill_slope', 'flat_space_walk', 'flat_space_run']
+outdoor_tests = ['street_walk', 'street_run']
 # Accelerometer positions
 acc_locations = ['LF', 'RF', 'Waist', 'Wrist']
 
@@ -36,12 +37,14 @@ def preprocess_data(db):
         # Skipping NaN values
         if pd.isna(db['outdoors'][i]): continue
     
-        # Normalize signals
-        # for location in acc_locations:
-        #     db['outdoors'][i]['street'][location] = normalize(amplify_windows(db['outdoors'][i]['street'][location]), axis = 0)
+        for test in outdoor_tests:
         
-        # Amplify event windows
-        db['outdoors'][i]['street']['labels'] = amplify_windows(db['outdoors'][i]['street']['labels'])
+            # Normalize signals
+            # for location in acc_locations:
+            #     db['outdoors'][i]['street'][location] = normalize(amplify_windows(db['outdoors'][i]['street'][location]), axis = 0)
+            
+            # Amplify event windows
+            db['outdoors'][i][test]['labels'] = amplify_windows(db['outdoors'][i][test]['labels'])
         
     return db
     

@@ -10,10 +10,11 @@ import torch
 from torch import nn
 from torch import optim
 import time
+import random
 import matplotlib.pyplot as plt
 from pathlib import Path
 from TCN.tcn import TemporalConvNet
-# import torch.nn.functional as F
+from metrics import compute_batch_metrics
     
 class TCN_model(nn.Module):
     def __init__(self, input_size, output_size, num_channels, kernel_size, dropout):
@@ -25,14 +26,22 @@ class TCN_model(nn.Module):
     def forward(self, x):
         # x needs to have dimension (N, C, L) in order to be passed into CNN
         output = self.tcn(x).transpose(1, 2)
-        output = self.linear(output).double()
+        output = self.linear(output)
         return output
+    
+    def predict(self, x):
+        # x needs to have dimension (N, C, L) in order to be passed into CNN
+        output = self.tcn(x).transpose(1, 2)
+        output = self.linear(output)
+        output = self.sig(output)
+        return (output > 0.5).float()
 
 class TCN(TCN_model):
     
-    def __init__(self, batch_size, seq_length, epochs, input_dim, num_labels,  lr = 0.001, clip = 5, 
-                 hidden_dim = 256, levels = 5, drop_prob=0.5, kernel_size = 5, 
-                 pos_weight = 5, starting_epoch = 0):
+    def __init__(self, batch_size, seq_length, hidden_dim, levels, drop_prob,
+                 kernel_size, pos_weight,
+                 lr = 0.001, clip = 5, input_dim = 12, num_labels = 4, 
+                 epochs = 30, starting_epoch = 0):
         
         self.num_channels = [hidden_dim] * levels
         
@@ -42,12 +51,15 @@ class TCN(TCN_model):
         self.batch_size = batch_size
         self.seq_length = seq_length
         self.hidden_dim = hidden_dim
+        self.levels = levels
+        self.kernel_size = kernel_size
         self.epochs = epochs
         self.input_dim = input_dim
         self.lr = lr
         self.clip = clip
         self.input_dim = input_dim
         self.num_labels = num_labels
+        self.drop_prob = drop_prob
         self.pos_weight = pos_weight
         self.starting_epoch = starting_epoch
         
@@ -122,10 +134,13 @@ class TCN(TCN_model):
         model_name = 'tcn_' + str(epoch + 1) + '_epoch.net'
         model_path = root_path / 'models' / 'TCN' / model_name
         
-        checkpoint = {'hidden_dim': self.hidden_dim,
-                      'input_dim': self.input_dim,
-                      'batch_size':self.batch_size,
+        checkpoint = {'batch_size':self.batch_size,
                       'sequence_length': self.seq_length,
+                      'hidden_dim': self.hidden_dim,
+                      'levels': self.levels,
+                      'drop_prob': self.drop_prob,
+                      'kernel_size':self.kernel_size,
+                      'pos_weight': self.pos_weight,
                       'state_dict': self.state_dict()}
  
         with open(model_path, 'wb') as f:
@@ -148,6 +163,9 @@ class TCN(TCN_model):
         """
         
         for e in range(self.epochs):
+            
+            # Shuffling instances of data
+            random.shuffle(data)
             
             # Storing current time
             epoch_start_time = time.time()
@@ -194,9 +212,6 @@ class TCN(TCN_model):
                     running_loss += loss.item()
                     
                 self.loss_during_training.append(running_loss/counter)
-                            
-                print("Instance %d processed. Training loss: %f, Time: %f seconds" 
-                  %(number,self.loss_during_training[-1], (time.time() - batch_start_time))) 
             
             # VALIDATION
             with torch.no_grad():
@@ -241,3 +256,54 @@ class TCN(TCN_model):
             if e % 1 == 0:
                 self.save_model(e)
                 print('Model saved')
+                
+    def eval_model(self, test_data):
+        
+        with torch.no_grad():
+            
+            # Switching to evaluation mode
+            self.eval()
+            
+            # Creating lists
+            accuracies_list = []
+            precision_list = []
+            recall_list = []
+            
+            for number, instance in enumerate(test_data):
+                
+                accuracy = 0.
+                precision = 0.
+                recall = 0.
+                counter = 0
+             
+                for x, y in self.get_batches(instance):
+                    
+                    # Convert data to tensor
+                    x = torch.from_numpy(x).float().to(self.device)
+                    
+                    # Resetting gradients
+                    self.optim.zero_grad()
+                    
+                    # Compute predictions
+                    out = self.predict(x).transpose(1, 2)
+                    
+                    # Convert to numpy array
+                    out = out.cpu().numpy()
+                    
+                    acc, pre, rec = compute_batch_metrics(y, out)
+                    accuracy += acc
+                    precision += pre
+                    recall += rec
+                    counter += 1
+                        
+                accuracies_list.append(accuracy/counter)
+                precision_list.append(precision/counter)
+                recall_list.append(recall/counter)
+                
+            print('Accuracy: %f, Precision: %f, Recall: %f'%
+                  (np.mean(accuracies_list),
+                    np.mean(precision_list),
+                    np.mean(recall_list)))
+            
+        # Switch back to train mode
+        self.train()

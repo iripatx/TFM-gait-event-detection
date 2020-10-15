@@ -81,8 +81,8 @@ class LSTM_model(nn.Module):
     
 class LSTM(LSTM_model):
     
-    def __init__(self, batch_size, seq_length, epochs, input_dim, num_labels,  lr = 0.001, clip = 5, 
-                 hidden_dim=256, n_layers=2, drop_prob=0.5, pos_weight = 5, bidirectional = True,
+    def __init__(self, batch_size, seq_length, hidden_dim, n_layers, pos_weight, drop_prob,
+                 num_labels = 4, input_dim = 12, lr = 0.001, clip = 5,  epochs = 30, bidirectional = True,
                  starting_epoch = 0):
 
         super().__init__(seq_length, input_dim, num_labels, hidden_dim, n_layers, drop_prob, bidirectional)
@@ -192,6 +192,9 @@ class LSTM(LSTM_model):
         
         for e in range(self.epochs):
             
+            # Shuffling instances of data
+            random.shuffle(data)
+            
             # Storing current time
             epoch_start_time = time.time()
             
@@ -285,4 +288,3 @@ class LSTM(LSTM_model):
                 self.save_model(e)
                 print('Model saved')
                 
-        

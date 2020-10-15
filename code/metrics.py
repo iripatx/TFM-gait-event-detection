@@ -11,6 +11,44 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
+def compute_batch_metrics(y_true, y_pred, num_labels = 4):
+    """
+    compute_accuracy
+    Computes the mean accuracy of the predictions for the given dataset
+    
+    Arguments:
+        data (list of numpy array): List of instances of data, including ground
+        truth and predictions
+        num_labels(int, default = 4): Number of classes
+    """ 
+    
+    # Declarating list to store results
+    acc = []
+    pre = []
+    rec = []
+    
+    for batch in np.arange(y_true.shape[0]):
+        
+        # Declarating list to store individual results
+        batch_acc = []
+        batch_pre = []
+        batch_rec = []
+        
+        for label in np.arange(num_labels):
+            
+            # Computing and storing metrics for each class
+            batch_acc.append(accuracy_score(y_true[batch, label, :], y_pred[batch, label, :]))
+            batch_pre.append(precision_score(y_true[batch, label, :], y_pred[batch, label, :]))
+            batch_rec.append(recall_score(y_true[batch, label, :], y_pred[batch, label, :]))
+        
+        # Storing mean results of the instance
+        acc.append(np.mean(batch_acc))
+        pre.append(np.mean(batch_pre))
+        rec.append(np.mean(batch_rec))
+        
+    # Returning mean of all results
+    return np.mean(acc), np.mean(pre), np.mean(rec)
+
 def compute_accuracy(data, num_labels = 4):
     """
     compute_accuracy

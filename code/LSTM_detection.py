@@ -134,7 +134,13 @@ def extract_data():
     # One out for validation
     val_data = data[3:5]
     del data[3:5]
-    val_data.append(data[34])
-    del data[34]
-        
-    return data, val_data
+    val_data.append(data[32])
+    del data[32]
+    
+    # One out for test
+    test_data = data[3:5]
+    del data[3:5]
+    test_data.append(data[32])
+    del data[32]
+    
+    return data, val_data, test_data

@@ -386,7 +386,7 @@ def read_labels(db, verbose = True):
     
     return db
 
-def extract_data(trial = 'All'):
+def extract_data(trial = 'All', pair = 1):
     """
     extract_data
         Extracts the necessary data and arranges it for the detection.
@@ -473,20 +473,19 @@ def extract_data(trial = 'All'):
             data.append(np.concatenate((left_foot, right_foot, waist, wrist, labels), axis = 1))
             outdoor_count +=1
         
+    # One out for test
+    test_data = data[(pair -1) * len(indoor_tests):(pair -1) * len(indoor_tests) + len(indoor_tests)]
+    del data[(pair -1) * len(indoor_tests):(pair -1) * len(indoor_tests) + len(indoor_tests)]
+    test_data.append(data[-(outdoor_count - pair + 1)])
+    del data[-(outdoor_count - pair + 1)]
         
     # Random One out for validation
-    indoor_subject = random.randrange(0, indoor_count - 3, 3)
-    outdoor_subject = random.randrange(0, outdoor_count)
-    val_data = data[indoor_subject:indoor_subject + 3]
-    del data[indoor_subject:indoor_subject + 3]
-    val_data.append(data[outdoor_subject])
-    del data[outdoor_subject]
-    
-    # Last one out for test
-    test_data = data[indoor_count - 6:indoor_count - 3]
-    del data[indoor_count - 6:indoor_count - 3]
-    test_data.append(data[-1])
-    del data[-1]
+    indoor_subject = random.randrange(0, indoor_count - len(indoor_tests)*2, len(indoor_tests))
+    outdoor_subject = random.randrange(0, outdoor_count - 1)
+    val_data = data[indoor_subject:indoor_subject + len(indoor_tests)]
+    del data[indoor_subject:indoor_subject + len(indoor_tests)]
+    val_data.append(data[- outdoor_subject])
+    del data[- outdoor_subject]
     
     
     return data, val_data, test_data

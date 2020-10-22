@@ -11,7 +11,7 @@ from TCN_model import TCN
 import torch
 
 root_path = Path.cwd().parent
-model_name = '2.net'
+model_name = '9R.net'
 model_path = root_path / 'models' / 'TCN' / 'saved' / model_name
 
 # Load previously trained model
@@ -27,6 +27,6 @@ net.load_state_dict(checkpoint['state_dict'])
 
 # Extract test data
 
-_, _, test_data = extract_data('Walk')
+_, _, test_data = extract_data('Run', 9)
 
 net.eval_model(test_data)

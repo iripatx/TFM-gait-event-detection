@@ -57,3 +57,43 @@ def view_sample(signals, labels = np.zeros(1), length = 500, start = 0):
     plt.legend()
     
     plt.show()
+    
+def compare_labels(y, out):
+    
+    signal =  np.zeros(y.shape[1])
+    
+    plt.figure()
+    
+    # Left foot
+    plt.subplot(211)
+    # Sample signal
+    plt.plot(signal, 'w')
+    # Vertical lines for the events
+    for xc in np.where(y[0, :] == 1)[0]:
+        plt.axvline(x = xc, color = 'b')
+    for xc in np.where(y[1, :] == 1)[0]:
+        plt.axvline(x = xc, color = 'c')
+    for xc in np.where(y[2, :] == 1)[0]:
+        plt.axvline(x = xc, color = 'r')
+    for xc in np.where(y[3, :] == 1)[0]:
+        plt.axvline(x = xc, color = 'y')
+    plt.title('Ground Truth')
+    plt.legend()
+        
+    # Right foot
+    plt.subplot(212)
+    # Sample signal
+    plt.plot(signal, 'w')
+    # Vertical lines for the events
+    for xc in np.where(out[0, :] == 1)[0]:
+        plt.axvline(x = xc, color = 'b')
+    for xc in np.where(out[1, :] == 1)[0]:
+        plt.axvline(x = xc, color = 'c')
+    for xc in np.where(out[2, :] == 1)[0]:
+        plt.axvline(x = xc, color = 'r')
+    for xc in np.where(out[3, :] == 1)[0]:
+        plt.axvline(x = xc, color = 'y')
+    plt.title('Predictions')
+    plt.legend()
+    
+    plt.show()

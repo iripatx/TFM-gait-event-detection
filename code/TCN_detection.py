@@ -43,9 +43,9 @@ def detect_events(trained_model = None):
         
     else:
         
-        net = TCN(batch_size = 10, seq_length = 500, hidden_dim = 150, levels = 4, 
-                drop_prob = 0.5, kernel_size = 7, pos_weight = 20, epochs = 20)
+        net = TCN(batch_size = 40, seq_length = 125, hidden_dim = 150, levels = 4, 
+                drop_prob = 0.5, kernel_size = 7, pos_weight = 10, epochs = 20)
 
         
-    data, val_data, test_data = extract_data('Walk')  
+    data, val_data, test_data = extract_data('Run', 9)  
     net.trainloop(data, val_data)

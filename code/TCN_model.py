@@ -11,10 +11,11 @@ from torch import nn
 from torch import optim
 import time
 import random
-import matplotlib.pyplot as plt
+from display_utils import compare_labels
 from pathlib import Path
 from TCN.tcn import TemporalConvNet
 from metrics import compute_batch_metrics
+from scipy.ndimage.morphology import binary_opening
     
 class TCN_model(nn.Module):
     def __init__(self, input_size, output_size, num_channels, kernel_size, dropout):
@@ -127,6 +128,18 @@ class TCN(TCN_model):
             
             yield x, y
             
+            
+    def postprocess_data(self, data):
+        
+        for sequence in np.arange(data.shape[0]):
+            for event in np.arange(data.shape[1]):
+                
+                # Removing isolated positives (1s surrounded by 0s)
+                data[sequence, event, :] = binary_opening(data[sequence, event, :], structure = np.ones(3)).astype(int)
+        
+        return data
+            
+    
     def save_model(self,epoch):
 
         # Defining paths
@@ -212,52 +225,20 @@ class TCN(TCN_model):
                     running_loss += loss.item()
                     
                 self.loss_during_training.append(running_loss/counter)
+                
+            print("Epoch %d processed. Training loss: %f, Time: %f seconds" 
+                    %(e + 1, sum(self.loss_during_training[-len(data):])/len(data),
+                      (time.time() - epoch_start_time)))
             
-            # VALIDATION
-            with torch.no_grad():
-                
-                # Switching to evaluation mode
-                self.eval()
-                
-                for number, instance in enumerate(val_data):
-                    
-                    val_running_loss = 0.
-                    val_counter = 0.
-                 
-                    for x, y in self.get_batches(instance):
-                        
-                        val_counter = val_counter + 1.
-                        
-                        # Convert data to tensor
-                        x, y = torch.from_numpy(x).float().to(self.device), torch.from_numpy(y).float().to(self.device)
-                        
-                        # Resetting gradients
-                        self.optim.zero_grad()
-                        
-                        # Compute output
-                        out = self.forward(x)
-                        
-                        # Compute loss
-                        loss = self.criterion(out, y.transpose(1, 2))
-                        
-                        # Storing current loss
-                        val_running_loss += loss.item()
-                            
-                    self.val_loss_during_training.append(val_running_loss/val_counter)
-                
-                # Switch back to train mode
-                self.train()
-                
-            print("Epoch %d processed. Training loss: %f, Validation loss : %F, Time: %f seconds" 
-                    %(e + 1, sum(self.loss_during_training[-len(data):])/len(data), 
-                      sum(self.val_loss_during_training[-len(val_data):])/len(val_data),
-                      (time.time() - epoch_start_time))) 
+            # Computing validation performance
+            print("Validation results:")
+            self.eval_model(val_data)
             
-            if e % 1 == 0:
-                self.save_model(e)
-                print('Model saved')
+            # Storing model
+            self.save_model(e)
+            print('Model saved')
                 
-    def eval_model(self, test_data):
+    def eval_model(self, data):
         
         with torch.no_grad():
             
@@ -268,42 +249,69 @@ class TCN(TCN_model):
             accuracies_list = []
             precision_list = []
             recall_list = []
+            det_rate_list = []
+            rmse_list = []
             
-            for number, instance in enumerate(test_data):
+            
+            for number, instance in enumerate(data):
                 
+                running_loss = 0.
                 accuracy = 0.
                 precision = 0.
                 recall = 0.
+                det_rate = 0.
+                rmse = 0.
                 counter = 0
              
                 for x, y in self.get_batches(instance):
                     
                     # Convert data to tensor
-                    x = torch.from_numpy(x).float().to(self.device)
+                    x, y = torch.from_numpy(x).float().to(self.device), torch.from_numpy(y).float().to(self.device)
                     
                     # Resetting gradients
                     self.optim.zero_grad()
                     
+                    # Compute output
+                    out = self.forward(x)
+                    
+                    # Compute loss
+                    loss = self.criterion(out, y.transpose(1, 2))
+                    
+                    # Storing current loss
+                    running_loss += loss.item()
+                    
                     # Compute predictions
                     out = self.predict(x).transpose(1, 2)
                     
-                    # Convert to numpy array
+                    # Convert tensors to numpy array
                     out = out.cpu().numpy()
+                    y = y.cpu().numpy()
                     
-                    acc, pre, rec = compute_batch_metrics(y, out)
-                    accuracy += acc
-                    precision += pre
-                    recall += rec
+                    # Postprocess data
+                    out = self.postprocess_data(out)
+                    
+                    batch_acc, batch_pre, batch_rec, batch_det, batch_rmse = compute_batch_metrics(y, out)
+                    accuracy += batch_acc
+                    precision += batch_pre
+                    recall += batch_rec
+                    det_rate += batch_det
+                    rmse += batch_rmse
                     counter += 1
-                        
+                
+                self.val_loss_during_training.append(running_loss/counter)
                 accuracies_list.append(accuracy/counter)
                 precision_list.append(precision/counter)
                 recall_list.append(recall/counter)
+                det_rate_list.append(det_rate/counter)
+                rmse_list.append(rmse/counter)
                 
-            print('Accuracy: %f, Precision: %f, Recall: %f'%
-                  (np.mean(accuracies_list),
+            print('Loss: %f, Accuracy: %f, Precision: %f, Recall: %f, Detection Rate: %f, RMSE: %f'%
+                  (sum(self.val_loss_during_training[-len(data):])/len(data),
+                   np.mean(accuracies_list),
                     np.mean(precision_list),
-                    np.mean(recall_list)))
+                    np.mean(recall_list),
+                    np.mean(det_rate_list),
+                    np.mean(rmse_list)))
             
         # Switch back to train mode
         self.train()

@@ -53,8 +53,8 @@ def detect_events(trained_model = None):
         
     else:
         
-        net = LSTM(batch_size=20, seq_length = 500, epochs = 30, 
-                   input_dim = input_dim, num_labels=4)
+        net = LSTM(batch_size=40, seq_length = 125, epochs = 30, 
+                   input_dim = input_dim, num_labels = 4)
         
         
     data, val_data = extract_data()  

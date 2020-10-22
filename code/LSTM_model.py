@@ -5,12 +5,12 @@ import torch
 from torch import nn
 from torch import optim
 import time
-import matplotlib.pyplot as plt
+from display_utils import compare_labels
 from pathlib import Path
+import random
+from metrics import compute_batch_metrics
+from scipy.ndimage.morphology import binary_opening
 
-import os
-os.environ['CUDA_LAUNCH_BLOCKING'] = "0"
-# torch.backends.cudnn.enabled = False
 
 class LSTM_model(nn.Module):
     
@@ -73,10 +73,11 @@ class LSTM_model(nn.Module):
         # Put x through the fully-connected layer
         out = self.fc(out)
         
-        out = self.Sigmoid(out)
+        # Sigmoid to 
+        out = self.sigmoid(out)
         
-        # Return the final output and the hidden state
-        return round(out)
+        # Return the predicted labels
+        return (out > 0.5).float()
     
     
 class LSTM(LSTM_model):
@@ -157,6 +158,16 @@ class LSTM(LSTM_model):
             y = batch[:, :, self.input_dim:]
             
             yield x, y
+
+    def postprocess_data(self, data):
+        
+        for sequence in np.arange(data.shape[0]):
+            for event in np.arange(data.shape[1]):
+                
+                # Removing isolated positives (1s surrounded by 0s)
+                data[sequence, event, :] = binary_opening(data[sequence, event, :], structure = np.ones(3)).astype(int)
+        
+        return data
             
     def save_model(self,epoch):
 
@@ -165,11 +176,13 @@ class LSTM(LSTM_model):
         model_name = 'lstm_' + str(epoch + 1) + '_epoch.net'
         model_path = root_path / 'models' / 'LSTM' / model_name
         
-        checkpoint = {'hidden_dim': self.hidden_dim,
-              'n_layers': self.n_layers,
-              'batch_size':self.batch_size,
-              'sequence_length': self.seq_length,
-              'state_dict': self.state_dict()}
+        checkpoint = {'batch_size':self.batch_size,
+                      'sequence_length': self.seq_length,
+                      'hidden_dim': self.hidden_dim,
+                      'n_layers': self.n_layers,
+                      'drop_prob': self.drop_prob,
+                      'pos_weight': self.pos_weight,
+                      'state_dict': self.state_dict()}
  
         with open(model_path, 'wb') as f:
             torch.save(checkpoint, f)
@@ -194,7 +207,7 @@ class LSTM(LSTM_model):
             
             # Shuffling instances of data
             random.shuffle(data)
-            
+
             # Storing current time
             epoch_start_time = time.time()
             
@@ -206,9 +219,6 @@ class LSTM(LSTM_model):
                 running_loss = 0.
                 
                 counter = 0.
-                
-                # Storing current time
-                batch_start_time = time.time()
                 
                 # Each instance has multiple batches
                 for x, y in self.get_batches(instance):
@@ -240,9 +250,6 @@ class LSTM(LSTM_model):
                     running_loss += loss.item()
                     
                 self.loss_during_training.append(running_loss/counter)
-                            
-                print("Instance %d processed. Training loss: %f, Time: %f seconds" 
-                  %(number,self.loss_during_training[-1], (time.time() - batch_start_time))) 
             
             # VALIDATION
             with torch.no_grad():
@@ -288,3 +295,59 @@ class LSTM(LSTM_model):
                 self.save_model(e)
                 print('Model saved')
                 
+    def eval_model(self, test_data):
+        
+        with torch.no_grad():
+            
+            # Switching to evaluation mode
+            self.eval()
+            
+            # Creating lists
+            accuracies_list = []
+            precision_list = []
+            recall_list = []
+            
+            for number, instance in enumerate(test_data):
+                
+                accuracy = 0.
+                precision = 0.
+                recall = 0.
+                counter = 0
+             
+                for x, y in self.get_batches(instance):
+                    
+                    # Convert data to tensor
+                    x = torch.from_numpy(x).float().to(self.device)
+                    
+                    # Resetting gradients
+                    self.optim.zero_grad()
+                    
+                    # Compute predictions
+                    out = self.predict(x).transpose(1, 2)
+                    
+                    # Convert to numpy array
+                    out = out.cpu().numpy()
+                    
+                    # Postprocess data
+                    out = self.postprocess_data(out)
+                    
+                    # Transpose y
+                    y = y.transpose((0, 2, 1))
+                    
+                    acc, pre, rec = compute_batch_metrics(y, out)
+                    accuracy += acc
+                    precision += pre
+                    recall += rec
+                    counter += 1
+                        
+                accuracies_list.append(accuracy/counter)
+                precision_list.append(precision/counter)
+                recall_list.append(recall/counter)
+                
+            print('Accuracy: %f, Precision: %f, Recall: %f'%
+                  (np.mean(accuracies_list),
+                    np.mean(precision_list),
+                    np.mean(recall_list)))
+            
+        # Switch back to train mode
+        self.train()
